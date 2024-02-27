@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistik Pemilu 2024</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<div class="p-4">
+    <h1 class="p-4" style="text-align: center;">HASIL HITUNG SUARA PEMILU PRESIDEN & WAKIL PRESIDEN RI 2024</h1>
+    <h6  style="text-align: center;" id="subtitle"></h6>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h3 class="card-title">Grafik Persentase Suara</h3>
+                <canvas id="chart"></canvas>
+                <div> <div id="progres_side"></div></div>
+                <h6>
+                Disclaimer
+                </h6>
+<li>Publikasi Form Model C/D Hasil adalah hasil penghitungan suara di TPS dengan tujuan untuk memudahkan akses informasi publik.</li>
+<li>Penghitungan suara yang dilakukan oleh KPPS, rekapitulasi hasil penghitungan suara dan penetapan hasil pemilu dilakukan secara berjenjang dalam rapat pleno terbuka oleh PPK, KPU Kabupaten/Kota, KPU Provinsi dan KPU berdasarkan ketentuan peraturan perundang-undangan.</li>
+<li>Data berasal dari <b>KPU RI</b></li>
+
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card p-3">
+                <h3 class="card-title">Statistik</h3>
+                <table id="statistikTable" class="table table-striped"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        // Fungsi untuk mengambil data dari URL JSON
+        function getData(url, callback) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => callback(data))
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Panggil fungsi getData untuk mengambil data kandidat
+        getData('https://sirekap-obj-data.kpu.go.id/pemilu/ppwp.json', function(data) {
+            // Tampilkan data kandidat
+            const kandidatList = document.getElementById('kandidatList');
+            Object.values(data).forEach(kandidat => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${kandidat.nomor_urut}. ${kandidat.nama}`;
+                kandidatList.appendChild(listItem);
+            });
+        });
+
+        // Panggil fungsi getData untuk mengambil data wilayah
+        getData('https://sirekap-obj-data.kpu.go.id/wilayah/pemilu/ppwp/0.json', function(data) {
+            // Tampilkan data wilayah
+            const wilayahList = document.getElementById('wilayahList');
+            wilayahData = data.reduce((acc, curr) => {
+                acc[curr.kode] = curr.nama;
+                return acc;
+            }, {});
+            Object.entries(wilayahData).forEach(([kode, nama]) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${nama} (${kode})`;
+                wilayahList.appendChild(listItem);
+            });
+        });
+
+        // Panggil fungsi getData untuk mengambil data statistik
+        getData('https://sirekap-obj-data.kpu.go.id/pemilu/hhcw/ppwp.json', function(data) {
+            // Tampilkan data statistik
+            const statistikTable = document.getElementById('statistikTable');
+            const progres_side = document.getElementById('progres_side');
+/*             progres_side.innerHTML = `
+              Progress Data ${data.progres.progres} TPS dari  ${data.progres.total} TPS (${data.chart.persen}%) 
+              diperbarui pada ${data.ts} @ KPU RI
+            `; */
+            var i = 1;
+            const timestamp = new Date(data.ts).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: 'numeric' });
+            document.getElementById('subtitle').innerHTML = `diperbarui pada ${timestamp} Progress Data ${data.progres.progres} TPS dari  ${data.progres.total} TPS (${data.chart.persen}%) `;
+            statistikTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Wilayah</th>
+                        <th>H. ANIES RASYID BASWEDAN, Ph.D. - Dr. (H.C.) H. A. MUHAIMIN ISKANDAR</th>
+                        <th>H. PRABOWO SUBIANTO - GIBRAN RAKABUMING RAKA</th>
+                        <th>H. GANJAR PRANOWO, S.H., M.I.P. - Prof. Dr. H. M. MAHFUD MD</th>
+                        <th>Status Progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                   
+                    ${Object.entries(data.table).map(([kode, { '100025': total1, '100026': total2, '100027': total3, status_progress, persen }]) => {
+                        const wilayahNama = wilayahData[kode];
+                        const total = total1 + total2 + total3;
+                        const persen1 = ((total1 / total) * 100).toFixed(2);
+                        const persen2 = ((total2 / total) * 100).toFixed(2);
+                        const persen3 = ((total3 / total) * 100).toFixed(2);
+                        return `
+                            <tr>
+                                <td>${i++}</td>
+                                <td>${wilayahNama}</td>
+                                <td>${total1} Suara - ${persen1}%</td>
+                                <td>${total2} Suara - ${persen2}%</td>
+                                <td>${total3} Suara - ${persen3}%</td>
+                                <td>${persen}%</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            `;
+
+            // Inisialisasi DataTable
+            $(document).ready(function() {
+                $('#statistikTable').DataTable({
+                    "paging": true,
+                    "lengthChange": false,
+                    "searching": true,
+                    "ordering": true,
+                    "info": true,
+                    "autoWidth": false,
+                    "responsive": true,
+                    "language": {
+                        "paginate": {
+                            "previous": "Sebelumnya",
+                            "next": "Selanjutnya"
+                        },
+                        "search": "Cari:",
+                        "info": "Menampilkan _START_ hingga _END_ dari _TOTAL_ entri",
+                        "infoEmpty": "Menampilkan 0 hingga 0 dari 0 entri",
+                        "zeroRecords": "Tidak ditemukan data yang sesuai",
+                        "emptyTable": "Tidak ada data yang tersedia",
+                        "lengthMenu": "Tampilkan _MENU_ entri"
+                    }
+                });
+            });
+
+            // Data untuk grafik
+            const labels = ['H. ANIES RASYID BASWEDAN, Ph.D. - Dr. (H.C.) H. A. MUHAIMIN ISKANDAR', 'H. PRABOWO SUBIANTO - GIBRAN RAKABUMING RAKA', 'H. GANJAR PRANOWO, S.H., M.I.P. - Prof. Dr. H. M. MAHFUD MD'];
+            const dataValues = [
+            	data.chart['100025'], 
+              data.chart['100026'], 
+              data.chart['100027']
+              ];
+
+            // Buat grafik
+            const ctx = document.getElementById('chart').getContext('2d');
+            const myChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Suara Kandidat',
+                        data: dataValues,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                
+            });
+        });
+    </script>
+</body>
+</html>
